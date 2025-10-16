@@ -1,52 +1,33 @@
-# 🧑‍💻 Guía de Laboratorio: Agente de IA Modular con LangGraph, LangChain y MCP
+# 🤖 Agente de Logística Modular: LangGraph + MCP + MongoDB
 
-Este laboratorio tiene como objetivo que elaboren una implementación funcional de un Agente de IA, demostrando el uso de una arquitectura modular: **LangGraph** para la orquestación, **LangChain** para las herramientas, y **MCP** (Model Context Protocol) para estandarizar la conexión a **MongoDB** (simulada).
+Este repositorio contiene la solución para el Laboratorio de Arquitectura de Agentes de IA. El objetivo es construir un agente que use **LangGraph** para tomar decisiones condicionales sobre si consultar la base de datos de **MongoDB** (simulada) para obtener información logística.
 
-## 🎯 Objetivo de la Entrega (Git Flow)
+La conexión a la base de datos se maneja a través del concepto de **MCP (Model Context Protocol)** para desacoplar la lógica del agente de la implementación de la herramienta.
 
-Al finalizar, deben demostrar el funcionamiento del agente con los dos casos de prueba.
+## 🎯 Objetivo del Ejercicio
 
-1.  **Creación de Rama:** Trabajar en una nueva rama, ejemplo: `feature/agente-productos`.
-2.  **Archivos:** Implementar la solución en un archivo principal (ej: `agent.py`).
-3.  **Demostración:** El script debe incluir las pruebas de invocación para los casos "simple" y "búsqueda".
+Implementar un agente de soporte logístico capaz de bifurcar el flujo de trabajo basándose en la intención del usuario:
 
-***
+1.  **Ruta 1 (Simple):** Si la consulta es un saludo o comentario general.
+2.  **Ruta 2 (Consulta de Datos):** Si la consulta es sobre un `item_id`, `SKU`, o `pedido` que requiere la herramienta de la Base de Datos.
 
-## ⚙️ I. Arquitectura y Componentes Clave
+## ⚙️ Roles de Componentes
 
-El agente debe seguir un flujo de decisión que utiliza un servicio externo (MongoDB), desacoplado mediante el protocolo MCP.
-
-| Componente | Rol en el Laboratorio | Tarea Principal a Implementar |
+| Tecnología | Rol | Tarea Específica en el Agente |
 | :--- | :--- | :--- |
-| **MongoDB (Simulación)** | Fuente de Datos. | Función Python que simula la consulta de productos. |
-| **LangChain** | Define la Herramienta. | Crear el objeto `Tool` a partir de la función de MongoDB. |
-| **MCP** | El Adaptador Estandarizado. | Simular la carga de la herramienta a través del cliente MCP. |
-| **LangGraph** | El Orquestador y Cerebro. | Construir el `StateGraph` con el **Borde Condicional**. |
+| **LangGraph** | **Orquestador Central** | Define el flujo de nodos y el **Borde Condicional**. |
+| **LangChain** | **Herramientas (Tool)** | Define la función `check_inventory` (consulta MongoDB simulada). |
+| **MongoDB (Simulada)**| **Datos Persistentes** | Provee información como el estado de un pedido (`ORD-101`). |
+| **MCP** | **Estandarización** | Desacopla la lógica del agente de la implementación de la herramienta de LangChain/MongoDB. |
 
-## 🛠️ II. Pasos de Implementación Lógica
+## 🛠️ Estructura del Flujo de LangGraph
 
-Deberán concentrarse en tres bloques lógicos dentro de su archivo principal (`agent.py`):
+Tu implementación debe replicar esta lógica de grafo, donde el nodo `Decisor` clasifica y dirige el flujo:
 
-### Paso 1: Definición de Estado y Herramienta
-
-Implementen la estructura de datos que compartirá el contexto y la herramienta a utilizar.
-
-1.  **Base de Datos Simulado:** Implementen la función `get_product_details(nombre_producto: str) -> str`.
-    * *Sugerencia:* Usen un diccionario simple para simular los datos de MongoDB.
-2.  **Definición del Estado:** Creen la clase `AgentState` (`TypedDict`) que debe manejar:
-    * `messages`: Historial de la conversación.
-    * `classification`: El resultado del decisor (`"simple"` o `"busqueda"`).
-    * `tool_result`: El resultado de la consulta a la BD (vía MCP).
-
-### Paso 2: Creación de Nodos (Lógica del Agente)
-
-Creen las funciones de Python que representan la lógica de cada etapa del grafo.
-
-1.  **`classify_message` (Nodo Decisor):**
-    * **Función:** Clasifica la intención del usuario.
-    * **Lógica:** Debe retornar un `AgentState` con `classification` actualizado.
-2.  **`execute_mcp_tool` (Nodo Ejecutor):**
-    * **Función:** Invoca la herramienta de MongoDB/LangChain (simulada como cargada vía MCP).
-    * **Lógica:** Extrae el producto a buscar del mensaje, llama a la función de la BD y almacena el resultado en el estado (`tool_result`).
-3.  **`generate_final_response` (Nodo Finalizador):**
-    *
+```mermaid
+graph LR
+    A[START: Mensaje del Usuario] --> B(Nodo Decisor: Clasificación);
+    B -->|'chat_simple'| C(Nodo Finalizador: Responder Directo);
+    B -->|'consulta_logistica'| D(Nodo Ejecutor: Llama a Herramienta (VÍA MCP));
+    D --> C;
+    C --> E[END: Respuesta Final];
